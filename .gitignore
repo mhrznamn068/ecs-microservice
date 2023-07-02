@@ -1,0 +1,13 @@
+*.swp
+*.zip
+.env
+.env.prod
+.env.dev
+.vscode
+
+# Terraform
+terraform.tfvars
+.terraform
+*.tfvars
+.terragrunt-cache
+output.json

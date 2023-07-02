@@ -1,0 +1,9 @@
+{
+    "node_name": "country-app",
+    "data_dir": "/consul/data",
+    "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+    "verify_incoming": false,
+    "verify_outgoing": false,
+    "verify_server_hostname": false
+}
+  
