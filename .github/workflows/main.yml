@@ -1,0 +1,104 @@
+name:  Docker image build and push
+
+on:
+  push:
+    branches: [main] 
+
+env:
+  ENVIRONMENT: "prod"
+  APIGATEWAY_SERVICE_NAME: "apigateway"
+  COUNTRIES_SERVICE_NAME: "countries"
+  FOOD_SERVICE_NAME: "food"
+  AWS_REGION: "ap-south-1"
+  
+jobs:
+  apigateway:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2 
+    
+    - name: Login to ECR
+      uses: docker/login-action@v1
+      with:
+        registry: ${{secrets.REGISTRY }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    
+    - name: Docker image build and push
+      working-directory: ${{ github.workspace}}
+      run: |
+        docker build . -t ${{secrets.REGISTRY }}/${{ env.SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }} --build-arg ENVIRONMENT=${{ env.ENVIRONMENT }}
+        docker tag ${{secrets.REGISTRY }}/${{ env.SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }} \
+        ${{secrets.REGISTRY }}/${{ env.SERVICE_NAME }}-${{ env.ENVIRONMENT }}:latest
+        docker push ${{secrets.REGISTRY }}/${{ env.SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }}
+        docker push ${{secrets.REGISTRY }}/${{ env.SERVICE_NAME }}-${{ env.ENVIRONMENT }}:latest
+        echo "Pushed Docker image ${{secrets.REGISTRY }}/${{ env.SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }}"
+
+  countries:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2 
+    
+    - name: Login to ECR
+      uses: docker/login-action@v1
+      with:
+        registry: ${{secrets.REGISTRY }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Docker image build and push
+      working-directory: ${{ github.workspace}}
+      run: |
+        docker build . --file nginx/Dockerfile -t ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }} --build-arg ENVIRONMENT=${{ env.ENVIRONMENT }}
+        docker tag ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }} \
+          ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:latest
+        docker push ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }}
+        docker push ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:latest
+        echo "Pushed Docker image ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }}"
+
+  food:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2 
+    
+    - name: Login to ECR
+      uses: docker/login-action@v1
+      with:
+        registry: ${{secrets.REGISTRY }}
+        username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Docker image build and push
+      working-directory: ${{ github.workspace}}
+      run: |
+        docker build . --file nginx/Dockerfile -t ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }} --build-arg ENVIRONMENT=${{ env.ENVIRONMENT }}
+        docker tag ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }} \
+          ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:latest
+        docker push ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }}
+        docker push ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:latest
+        echo "Pushed Docker image ${{secrets.REGISTRY }}/${{ env.NGINX_SERVICE_NAME }}-${{ env.ENVIRONMENT }}:${{ github.run_number }}"
+
+  deploy:
+    runs-on: ubuntu-20.04
+    needs: [ build, build-nginx ]
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Update ECS Service
+      run: |
+        aws ecs update-service --cluster ${{ secrets.CLUSTER_NAME }} --service ${{ secrets.ECS_APIGATEWAY_SERVICE_NAME }} \
+          --force-new-deployment --region ${{ env.AWS_REGION }}
+        aws ecs update-service --cluster ${{ secrets.CLUSTER_NAME }} --service ${{ secrets.ECS_COUNTRIES_SERVICE_NAME }} \
+          --force-new-deployment --region ${{ env.AWS_REGION }}
+        aws ecs update-service --cluster ${{ secrets.CLUSTER_NAME }} --service ${{ secrets.ECS_FOOD_SERVICE_NAME }} \
+          --force-new-deployment --region ${{ env.AWS_REGION }}
+        
+ 
