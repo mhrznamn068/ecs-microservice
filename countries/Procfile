@@ -1,5 +1,0 @@
-# Django
-django: /app/countries.sh
-
-# Consul Client Agent
-consul: /opt/consul.sh

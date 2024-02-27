@@ -1,5 +1,0 @@
-# Django
-django: /app/food.sh
-
-# Consul Client Agent
-consul: /opt/consul.sh
